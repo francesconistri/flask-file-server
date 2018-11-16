@@ -145,12 +145,12 @@ def iter_recursive_files(path):
 
             filepath = os.path.join(path, _root, _filename)
 
-            yield File(filepath)
+            yield File(filepath, path)
 
 
 def iter_files(path):
     for filename in os.listdir(path):
-        yield File(os.path.join(path, filename))
+        yield File(os.path.join(path, filename), path)
 
 
 def sorted_contents(contents, sorting):
@@ -163,9 +163,10 @@ def sorted_contents(contents, sorting):
 
 
 class File:
-    def __init__(self, path):
-        self.path = path
-        self.name = os.path.basename(path)
+    def __init__(self, full_path, base_path):
+        self.path = full_path
+        self.name = os.path.basename(self.path)
+        self.relative_path = os.path.relpath(full_path, base_path)
 
     @cached_property
     def stat(self):
