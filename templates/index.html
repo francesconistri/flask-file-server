@@ -34,6 +34,11 @@
           {% else %}
           <a href="?hide-dotfile=yes" class="btn btn-secondary text-muted">Hide Dotfiles</a>
           {% endif %}
+          {% if recursive %}
+          <a href="?recursive=no" class="btn btn-secondary text-muted">Not Recursive</a>
+          {% else %}
+          <a href="?recursive=yes" class="btn btn-secondary text-muted">Recursive</a>
+          {% endif %}
         </div>
       </div>
     </div>
@@ -102,7 +107,7 @@
       <div class="modal-dialog modal-lg">
         <div class="modal-content">
           <div class="modal-body">
-            <form id="upload-files" action="./php/form_upload.php" method="post" enctype="multipart/form-data">
+            <form id="upload-files" action="./" method="post" enctype="multipart/form-data">
                 <input type="file" name="files[]" id="filer_input" multiple="multiple">
             </form>
           </div>
