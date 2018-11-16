@@ -14,7 +14,6 @@ from flask import (
     render_template,
     request,
     send_file,
-    session,
 )
 from flask.views import MethodView
 from werkzeug import secure_filename
@@ -55,10 +54,11 @@ icontypes = {
     "fa-archive": "7z,zip,rar,gz,tar",
     "fa-picture-o": "gif,ico,jpe,jpeg,jpg,png,svg,webp",
     "fa-file-text": "pdf",
-    "fa-film": "3g2,3gp,3gp2,3gpp,mov,qt",
-    "fa-code": "atom,plist,bat,bash,c,cmd,coffee,css,hml,js,json,java,less,markdown,md,php,pl,py,rb,rss,sass,scpt,swift,scss,sh,xml,yml",
+    "fa-film": "3g2,3gp,3gp2,3gpp,mov,qt,mp4,m4v,ogv,webm",
+    "fa-code": (
+        "atom,plist,bat,bash,c,cmd,coffee,css,hml,js,json,java,less,markdown,md,php,pl,py,rb,rss,sass,scpt,swift,scss,sh,xml,yml"
+    ),
     "fa-file-text-o": "txt",
-    "fa-film": "mp4,m4v,ogv,webm",
     "fa-globe": "htm,html,mhtm,mhtml,xhtm,xhtml",
 }
 
@@ -112,7 +112,10 @@ def partial_response(path, start, end=None):
     assert len(bytes) == length
 
     response = Response(
-        bytes, 206, mimetype=mimetypes.guess_type(path)[0], direct_passthrough=True
+        bytes,
+        206,
+        mimetype=mimetypes.guess_type(path)[0],
+        direct_passthrough=True,
     )
     response.headers.add(
         "Content-Range", "bytes {0}-{1}/{2}".format(start, end, file_size)
@@ -123,7 +126,7 @@ def partial_response(path, start, end=None):
 
 def get_range(request):
     range = request.headers.get("Range")
-    m = re.match("bytes=(?P<start>\d+)-(?P<end>\d+)?", range)
+    m = re.match(r"bytes=(?P<start>\d+)-(?P<end>\d+)?", range)
     if m:
         start = m.group("start")
         end = m.group("end")
@@ -154,7 +157,9 @@ def sorted_contents(contents, sorting):
     sorting = sorting or "-size"
     reverse = sorting.startswith("-")
     key = sorting.lstrip("-")
-    return sorted(contents, reverse=reverse, key=lambda f: getattr(f, key, None))
+    return sorted(
+        contents, reverse=reverse, key=lambda f: getattr(f, key, None)
+    )
 
 
 class File:
@@ -274,4 +279,3 @@ app.add_url_rule("/<path:p>", view_func=path_view)
 
 if __name__ == "__main__":
     app.run("0.0.0.0", 8000, threaded=True, debug=False)
-
