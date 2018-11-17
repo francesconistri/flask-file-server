@@ -5,6 +5,7 @@ import re
 import stat
 from datetime import datetime
 
+import furl
 import humanize
 from cached_property import cached_property
 from flask import (
@@ -17,6 +18,7 @@ from flask import (
 )
 from flask.views import MethodView
 from werkzeug import secure_filename
+import jinja2
 
 app = Flask(__name__, static_url_path="/assets", static_folder="assets")
 root = os.path.expanduser("~")
@@ -99,6 +101,16 @@ def time_humanize(timestamp):
     return humanize.naturaltime(mdate)
 
 
+@jinja2.contextfilter
+def set_param(context, param, value):
+    f = furl.furl(request.full_path)
+    f.args[param] = value
+    return f.url
+
+
+app.jinja_env.filters["set_param"] = set_param
+
+
 def partial_response(path, start, end=None):
     file_size = os.path.getsize(path)
 
@@ -154,7 +166,8 @@ def iter_files(path):
 
 
 def sorted_contents(contents, sorting):
-    sorting = sorting or "-size"
+    if not sorting:
+        return contents
     reverse = sorting.startswith("-")
     key = sorting.lstrip("-")
     return sorted(
@@ -162,11 +175,24 @@ def sorted_contents(contents, sorting):
     )
 
 
+def paginate(contents, page, page_size=100):
+    try:
+        page = int(page)
+        page_size = int(page_size)
+    except Exception:
+        return contents
+    start = page * page_size
+    end = start + page_size
+    return contents[start:end]
+
+
 class File:
     def __init__(self, full_path, base_path):
         self.path = full_path
         self.name = os.path.basename(self.path)
-        self.relative_path = os.path.relpath(full_path, base_path)
+
+    def get_absolute_url(self):
+        return os.path.relpath(self.path, root)
 
     @cached_property
     def stat(self):
@@ -202,6 +228,18 @@ class File:
 
 
 class PathView(MethodView):
+    def get_page(self):
+        try:
+            return int(request.args.get("page"))
+        except (ValueError, TypeError):
+            return 0
+
+    def get_page_size(self):
+        try:
+            return int(request.args.get("page_size"))
+        except (ValueError, TypeError):
+            return 100
+
     def get(self, p=""):
         hide_dotfile = request.args.get(
             "hide-dotfile", request.cookies.get("hide-dotfile", "no")
@@ -229,15 +267,22 @@ class PathView(MethodView):
                 total["size"] += file.size
 
                 contents.append(file)
-            page = render_template(
+
+            contents = sorted_contents(contents, sorting)
+            contents = paginate(
+                contents, self.get_page(), page_size=self.get_page_size()
+            )
+            response_content = render_template(
                 "index.html",
                 path=p,
-                contents=sorted_contents(contents, sorting),
+                page=self.get_page(),
+                page_size=self.get_page_size(),
+                contents=contents,
                 total=total,
                 hide_dotfile=hide_dotfile,
                 recursive=recursive,
             )
-            res = make_response(page, 200)
+            res = make_response(response_content, 200)
             res.set_cookie("hide-dotfile", hide_dotfile, max_age=16070400)
         elif os.path.isfile(path):
             if "Range" in request.headers:
