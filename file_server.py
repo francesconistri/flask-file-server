@@ -48,7 +48,7 @@ datatypes = {
     "quicktime": "3g2,3gp,3gp2,3gpp,mov,qt",
     "source": "atom,bat,bash,c,cmd,coffee,css,hml,js,json,java,less,markdown,md,php,pl,py,rb,rss,sass,scpt,swift,scss,sh,xml,yml,plist",
     "text": "txt",
-    "video": "mp4,m4v,ogv,webm",
+    "video": "mp4,m4v,ogv,webm,avi",
     "website": "htm,html,mhtm,mhtml,xhtm,xhtml",
 }
 icontypes = {
@@ -192,7 +192,9 @@ class File:
         self.name = os.path.basename(self.path)
 
     def get_absolute_url(self):
-        return os.path.relpath(self.path, root)
+        f = furl.furl(os.path.relpath(self.path, root))
+        f.path.isabsolute = True
+        return f.url
 
     @cached_property
     def stat(self):
@@ -291,7 +293,6 @@ class PathView(MethodView):
                 res = partial_response(path, start, end)
             else:
                 res = send_file(path)
-                res.headers.add("Content-Disposition", "attachment")
         else:
             res = make_response("Not found", 404)
         return res
